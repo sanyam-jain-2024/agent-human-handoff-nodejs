@@ -23,19 +23,27 @@ const io = require('socket.io')(http);
 const CustomerStore = require('./customerStore.js');
 const MessageRouter = require('./messageRouter.js');
 
-// Grab the service account credentials path from an environment variable
-const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-if(!keyPath) {
-  console.log('You need to specify GOOGLE_APPLICATION_CREDENTIALS in your .env file. See README.md for details.');
-  process.exit(1);
+// Determine environment and credential path
+const environment = process.env.ENVIRONMENT || 'development'; // Default to development
+let dialogflowClientConfig = { apiEndpoint: 'global-dialogflow.googleapis.com' };
+
+if (environment === 'production') {
+  console.log('Running in production environment, using default service account.');
+  // In production (Cloud Run), the default service account attached to the service
+  // will be used automatically by the client library, so no keyFilename is needed.
+} else {
+  console.log('Running in development environment, using local credentials.');
+  const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  if(!keyPath) {
+    console.log('You need to specify GOOGLE_APPLICATION_CREDENTIALS  in your .env file for development.');
+    process.exit(1);
+  }
+  dialogflowClientConfig.keyFilename = keyPath;
 }
 
 // Load and instantiate the Dialogflow client library
 const dialogflow = require('@google-cloud/dialogflow-cx');
-const dialogflowClient = new dialogflow.SessionsClient({
-  apiEndpoint: 'global-dialogflow.googleapis.com',
-  keyFilename: keyPath
-});
+const dialogflowClient = new dialogflow.SessionsClient(dialogflowClientConfig);
 
 // Grab the Dialogflow project ID, location ID, and agent ID from environment variables
 const projectId = process.env.DF_PROJECT_ID;
@@ -68,7 +76,7 @@ app.get('/', (req, res) => {
   res.sendFile(`${__dirname}/static/customer.html`);
 });
 
-app.get('/operator', (req, res) => {
+app.get('/agent', (req, res) => {
   res.sendFile(`${__dirname}/static/operator.html`);
 });
 
