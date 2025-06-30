@@ -16,52 +16,150 @@ limitations under the License.
 <html>
   <head>
     <title>Customer Interface</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font: 13px Helvetica, Arial; }
-      h1 { text-align: center; padding: 20px; }
-      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
-      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
-      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
-      #messages { list-style-type: none; margin: 0; padding: 0; }
-      #messages li { padding: 5px 10px; }
-      #messages li.customer-error { color: red; }
-      #messages li.customer-message { color: blue; }
-      #messages li.customer-message::before { content: "> " }
-      #messages li:nth-child(odd) { background: #eee; }
+      body {
+        font-family: 'Roboto', sans-serif;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        background-color: #e6e9ed;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+      }
+      h1 {
+        background-color: #4CAF50;
+        color: white;
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 0;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      }
+      .chat-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+      }
+      #messages {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+      }
+      #messages li {
+        padding: 10px 15px;
+        margin-bottom: 10px;
+        border-radius: 20px;
+        max-width: 70%;
+        word-wrap: break-word;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      #messages li.user-message {
+        background-color: #007bff;
+        color: white;
+        align-self: flex-end;
+        margin-left: auto;
+        border-bottom-right-radius: 5px;
+      }
+      #messages li.agent-message {
+        background-color: #f0f0f0;
+        color: #333;
+        align-self: flex-start;
+        margin-right: auto;
+        border-bottom-left-radius: 5px;
+      }
+      #messages li.customer-error {
+        background-color: #ffebee;
+        color: #c0392b;
+        font-weight: bold;
+        text-align: center;
+        margin: 10px auto;
+        max-width: 90%;
+      }
+      form {
+        background: #f8f8f8;
+        padding: 15px 20px;
+        display: flex;
+        border-top: 1px solid #e0e0e0;
+        box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
+      }
+      form input {
+        flex: 1;
+        border: 1px solid #ccc;
+        padding: 12px;
+        border-radius: 25px;
+        margin-right: 10px;
+        font-size: 1em;
+        outline: none;
+        transition: border-color 0.2s ease;
+      }
+      form input:focus {
+        border-color: #4CAF50;
+      }
+      form button {
+        background: #4CAF50;
+        color: white;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 25px;
+        cursor: pointer;
+        font-size: 1em;
+        transition: background-color 0.2s ease;
+        outline: none;
+      }
+      form button:hover {
+        background-color: #45a049;
+      }
     </style>
   </head>
   <body>
-    <h1>Customer</h1>
-    <ul id="messages"></ul>
+    <h1>Customer Support Chat</h1>
+    <div class="chat-container">
+      <ul id="messages"></ul>
+    </div>
     <form>
-      <input id="m" autocomplete="off" /><button>Send</button>
+      <input id="m" autocomplete="off" placeholder="Type your message here..." /><button>Send</button>
     </form>
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script>
       $(function () {
         var socket = io('/customer');
+        var $messages = $('#messages');
+        var $chatContainer = $('.chat-container');
+        var $input = $('#m');
+
+        function scrollToBottom() {
+          $chatContainer.scrollTop($chatContainer[0].scrollHeight);
+        }
 
         // When the form is submitted, send a customer message to the server
         $('form').submit(function(){
-          var messageText = $('#m').val();
-          $('#messages').append($('<li class="customer-message">').text(messageText));
+          var messageText = $input.val();
+          if (messageText.trim() === '') { // Prevent sending empty messages
+            return false;
+          }
+          $messages.append($('<li class="user-message">').text(messageText));
           socket.emit('customer message', messageText);
-          $('#m').val('');
+          $input.val('');
+          scrollToBottom();
           return false;
         });
 
-        // When we receive a customer message, display it
+        // When we receive a customer message (from agent/operator), display it
         socket.on('customer message', function(msg){
-          $('#messages').append($('<li>').text(msg));
+          $messages.append($('<li class="agent-message">').text(msg));
+          scrollToBottom();
         });
 
         // When we receive a system error, display it
         socket.on('system error', function(error) {
           var errorText = error.type + ' - ' + error.message;
           console.log(errorText);
-          $('#messages').append($('<li class="customer-error">').text(errorText));
+          $messages.append($('<li class="customer-error">').text(errorText));
+          scrollToBottom();
         });
       });
     </script>

@@ -18,11 +18,15 @@ const OperatorConnectionHandler = require('./operatorConnectionHandler.js');
 
 // Routes messages between connected customers, operators and Dialogflow agent
 class MessageRouter {
-  constructor ({ customerStore, dialogflowClient, projectId, customerRoom, operatorRoom }) {
+  constructor ({ customerStore, dialogflowClient, projectId, locationId, agentId, customerRoom, operatorRoom }) {
     // Dialogflow client instance
     this.client = dialogflowClient;
     // Dialogflow project id
     this.projectId = projectId;
+    // Dialogflow location ID (for CX)
+    this.locationId = locationId;
+    // Dialogflow Agent ID (for CX)
+    this.agentId = agentId;
     // An object that handles customer data persistence
     this.customerStore = customerStore;
     // Socket.io rooms for customers and operators
@@ -31,6 +35,16 @@ class MessageRouter {
     // All active connections to customers or operators
     this.customerConnections = {};
     this.operatorConnections = {};
+  }
+
+  // Helper method to create session path for Dialogflow CX
+  _createSessionPath(sessionId) {
+    return this.client.projectLocationAgentSessionPath(
+      this.projectId,
+      this.locationId,
+      this.agentId,
+      sessionId
+    );
   }
 
   // Attach event handlers and begin handling connections
@@ -95,7 +109,16 @@ class MessageRouter {
             return this._switchToOperator(customerId, customer, response);
           }
           // If not in operator mode, just grab the agent's response
-          const speech = response.queryResult.fulfillmentText;
+          let speech = '';
+          if (response.queryResult.responseMessages && response.queryResult.responseMessages.length > 0) {
+            for (const message of response.queryResult.responseMessages) {
+              if (message.text && message.text.text && message.text.text.length > 0) {
+                speech += message.text.text.join(' ') + ' '; // Join multiple text responses with space
+              }
+            }
+          }
+          speech = speech.trim(); // Remove trailing space
+
           // Send the agent's response to the operator so they see both sides
           // of the conversation.
           this._sendUtteranceToOperator(speech, customer, true);
@@ -108,31 +131,31 @@ class MessageRouter {
   // Uses the Dialogflow client to send a 'WELCOME' event to the agent, starting the conversation.
   _sendEventToAgent (customer) {
     console.log('Sending WELCOME event to agent');
-    return this.client.detectIntent({
-      // Use the customer ID as Dialogflow's session ID
-      session: this.client.sessionPath(this.projectId, customer.id),
+    const request = {
+      session: this._createSessionPath(customer.id),
       queryInput: {
         event: {
-          name: 'WELCOME',
-          languageCode: 'en'
-        }
-      }
-    });
+          event: 'WELCOME',
+        },
+        languageCode: 'en',
+      },
+    };
+    return this.client.detectIntent(request);
   }
 
   // Sends an utterance to Dialogflow and returns a promise with API response.
   _sendUtteranceToAgent (utterance, customer) {
     console.log('Sending utterance to agent');
-    return this.client.detectIntent({
-      // Use the customer ID as Dialogflow's session ID
-      session: this.client.sessionPath(this.projectId, customer.id),
+    const request = {
+      session: this._createSessionPath(customer.id),
       queryInput: {
         text: {
           text: utterance,
-          languageCode: 'en'
-        }
-      }
-    });
+        },
+        languageCode: 'en',
+      },
+    };
+    return this.client.detectIntent(request);
   }
 
   // Send an utterance, or an array of utterances, to the operator channel so that
@@ -170,20 +193,20 @@ class MessageRouter {
     };
   }
 
-  // Examines the context from the Dialogflow response and returns a boolean
-  // indicating whether the agent placed the customer in operator mode
+  // Examines the Dialogflow CX response to determine if the agent placed the customer in operator mode
   _checkOperatorMode (apiResponse) {
-    let contexts = apiResponse.queryResult.outputContexts;
+    // In Dialogflow CX, human handoff is typically handled via a custom payload or by checking the intent/page.
+    // For this example, we'll check for a custom payload with a specific flag.
+    // You would configure your Dialogflow CX agent to send a custom payload like:
+    // { "humanHandoff": true }
+
     let operatorMode = false;
-    for (const context of contexts) {
-      // The context name is returned as a long string, including the project ID, separated
-      // by / characters. To get the context name defined in Dialogflow, we should take the
-      // final portion.
-      const parts = context.name.split('/');
-      const name = parts[parts.length - 1];
-      if (name === AppConstants.CONTEXT_OPERATOR_REQUEST) {
-        operatorMode = true;
-        break;
+    if (apiResponse.queryResult && apiResponse.queryResult.responseMessages) {
+      for (const message of apiResponse.queryResult.responseMessages) {
+        if (message.payload && message.payload.fields && message.payload.fields.humanHandoff && message.payload.fields.humanHandoff.boolValue === true) {
+          operatorMode = true;
+          break;
+        }
       }
     }
     return operatorMode;
@@ -200,7 +223,16 @@ class MessageRouter {
       .then(() => {
         // We return an array of two responses: the last utterance from the Dialogflow agent,
         // and a mock "human" response introducing the operator.
-        const output = [ response.queryResult.fulfillmentText, AppConstants.OPERATOR_GREETING ];
+        const output = [];
+        if (response.queryResult.responseMessages) {
+            for (const message of response.queryResult.responseMessages) {
+                if (message.text && message.text.text && message.text.text.length > 0) {
+                    output.push(...message.text.text); // Use spread operator to push all text items
+                }
+            }
+        }
+        output.push(AppConstants.OPERATOR_GREETING);
+
         // Also send everything to the operator so they can see how the agent responded
         this._sendUtteranceToOperator(output, customer, true);
         return output;

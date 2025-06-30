@@ -11,6 +11,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Load environment variables from .env file
+require('dotenv').config();
+
 // Load third party dependencies
 const app = require('express')();
 const http = require('http').Server(app);
@@ -23,20 +26,28 @@ const MessageRouter = require('./messageRouter.js');
 // Grab the service account credentials path from an environment variable
 const keyPath = process.env.DF_SERVICE_ACCOUNT_PATH;
 if(!keyPath) {
-  console.log('You need to specify a path to a service account keypair in environment variable DF_SERVICE_ACCOUNT_PATH. See README.md for details.');
+  console.log('You need to specify DF_SERVICE_ACCOUNT_PATH in your .env file. See README.md for details.');
   process.exit(1);
 }
 
 // Load and instantiate the Dialogflow client library
-const { SessionsClient } = require('dialogflow');
-const dialogflowClient = new SessionsClient({
+const dialogflow = require('@google-cloud/dialogflow-cx');
+const dialogflowClient = new dialogflow.SessionsClient({
+  apiEndpoint: 'global-dialogflow.googleapis.com',
   keyFilename: keyPath
-})
+});
 
-// Grab the Dialogflow project ID from an environment variable
+// Grab the Dialogflow project ID, location ID, and agent ID from environment variables
 const projectId = process.env.DF_PROJECT_ID;
+const locationId = process.env.DF_LOCATION_ID || 'global'; // Default to 'global' if not specified
+const agentId = process.env.DF_AGENT_ID;
+
 if(!projectId) {
-  console.log('You need to specify a project ID in the environment variable DF_PROJECT_ID. See README.md for details.');
+  console.log('You need to specify DF_PROJECT_ID in your .env file. See README.md for details.');
+  process.exit(1);
+}
+if(!agentId) {
+  console.log('You need to specify DF_AGENT_ID in your .env file. See README.md for details.');
   process.exit(1);
 }
 
@@ -46,6 +57,8 @@ const messageRouter = new MessageRouter({
   customerStore: customerStore,
   dialogflowClient: dialogflowClient,
   projectId: projectId,
+  locationId: locationId,
+  agentId: agentId,
   customerRoom: io.of('/customer'),
   operatorRoom: io.of('/operator')
 });

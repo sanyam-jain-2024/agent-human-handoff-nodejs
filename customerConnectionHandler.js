@@ -35,7 +35,16 @@ class CustomerConnectionHandler extends ChatConnectionHandler {
           return this.router._sendEventToAgent(customer)
             .then(responses => {
               const response = responses[0];
-              this._respondToCustomer(response.queryResult.fulfillmentText, this.socket);
+              let speech = '';
+              if (response.queryResult.responseMessages && response.queryResult.responseMessages.length > 0) {
+                for (const message of response.queryResult.responseMessages) {
+                  if (message.text && message.text.text && message.text.text.length > 0) {
+                    speech += message.text.text.join(' ') + ' ';
+                  }
+                }
+              }
+              speech = speech.trim();
+              this._respondToCustomer(speech);
             });
         }
         // If known, do nothing - they just reconnected after a network interruption
@@ -72,7 +81,7 @@ class CustomerConnectionHandler extends ChatConnectionHandler {
       .then(response => {
         // Send any response back to the customer
         if (response) {
-          return this._respondToCustomer(response, this.socket);
+          return this._respondToCustomer(response);
         }
       })
       .catch(error => {
@@ -86,13 +95,11 @@ class CustomerConnectionHandler extends ChatConnectionHandler {
   // Send a message or an array of messages to the customer
   _respondToCustomer (response) {
     console.log('Sending response to customer:', response);
+    let messageToSend = response;
     if (Array.isArray(response)) {
-      response.forEach(message => {
-        this.socket.emit(AppConstants.EVENT_CUSTOMER_MESSAGE, message);
-      });
-      return;
+      messageToSend = response.join(' '); // Join array into a single string
     }
-    this.socket.emit(AppConstants.EVENT_CUSTOMER_MESSAGE, response);
+    this.socket.emit(AppConstants.EVENT_CUSTOMER_MESSAGE, messageToSend);
     // We're using Socket.io for our chat, which provides a synchronous API. However, in case
     // you want to swich it out for an async call, this method returns a promise.
     return Promise.resolve();

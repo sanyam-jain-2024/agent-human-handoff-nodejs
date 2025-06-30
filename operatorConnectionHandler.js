@@ -29,6 +29,15 @@ class OperatorConnectionHandler extends ChatConnectionHandler {
     super(socket, messageRouter, onDisconnect);
     this.init(socket.id);
     this.attachHandlers();
+    // When a new operator connects, send them details of all existing customers
+    for (const customerId in this.router.customerConnections) {
+      if (this.router.customerConnections.hasOwnProperty(customerId)) {
+        // Only send if the customer is not disconnected.
+        // Assuming 'disconnected' status is handled in customerStore or customerConnectionHandler
+        // For now, just send the customerId.
+        this.socket.emit(AppConstants.EVENT_CUSTOMER_CONNECTED, customerId);
+      }
+    }
   }
 
   init (operatorId) {

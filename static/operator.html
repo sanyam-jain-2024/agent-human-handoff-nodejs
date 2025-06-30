@@ -16,36 +16,153 @@ limitations under the License.
 <html>
   <head>
     <title>Operator Interface</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font: 13px Helvetica, Arial; }
-      h1 { text-align: center; padding: 20px; }
-      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
-      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
-      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
-      #chatTabs { list-style-type: none; margin: 0; padding: 0; }
-      #chatTabs li.chat-tab { padding: 5px; float: left; border: 1px solid black; border-radius: 10px 10px 0 0; cursor: default; }
-      #chatTabs li.chat-tab.selected { font-weight: bold; color: white; background-color: black; }
-      #chatWindows { clear: left; border-top: 1px solid black; }
-      ul.chat-window { list-style-type: none; margin: 0; padding: 0; }
-      ul.chat-window li { padding: 5px 10px; }
-      ul.chat-window li.operator-message { color: blue; }
-      ul.chat-window li.operator-error { color: red; }
-      ul.chat-window li.operator-message::before { content: "> " }
-      ul.chat-window li.customer-message { }
-      ul.chat-window li.agent-response { font-style: italic; }
-      ul.chat-window li:nth-child(odd) { background: #eee; }
+      body {
+        font-family: 'Roboto', sans-serif;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        background-color: #f4f7f6;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+      }
+      h1 {
+        background-color: #2c3e50;
+        color: white;
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 0;
+      }
+      .container {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+      }
+      .sidebar {
+        width: 250px;
+        background-color: #34495e;
+        color: white;
+        padding: 15px;
+        overflow-y: auto;
+        border-right: 1px solid #2c3e50;
+      }
+      .sidebar h2 {
+        font-size: 1.2em;
+        margin-top: 0;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #4a6782;
+        padding-bottom: 10px;
+      }
+      #chatTabs {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+      }
+      #chatTabs li.chat-tab {
+        padding: 10px 15px;
+        cursor: pointer;
+        border-bottom: 1px solid #4a6782;
+        transition: background-color 0.2s ease;
+      }
+      #chatTabs li.chat-tab:hover {
+        background-color: #4a6782;
+      }
+      #chatTabs li.chat-tab.selected {
+        background-color: #2980b9;
+        font-weight: bold;
+      }
+      .main-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background-color: #ffffff;
+        border-left: 1px solid #e0e0e0;
+      }
+      #chatWindows {
+        flex: 1;
+        overflow-y: auto;
+        padding: 15px;
+      }
+      ul.chat-window {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+      }
+      ul.chat-window li {
+        padding: 8px 10px;
+        margin-bottom: 5px;
+        border-radius: 5px;
+      }
+      ul.chat-window li.operator-message {
+        background-color: #e0f2f7;
+        color: #2980b9;
+        text-align: right;
+        margin-left: 20%;
+      }
+      ul.chat-window li.operator-message::before { content: ""; } /* Remove default prefix */
+      ul.chat-window li.customer-message {
+        background-color: #f0f0f0;
+        color: #333;
+        text-align: left;
+        margin-right: 20%;
+      }
+      ul.chat-window li.agent-response {
+        font-style: italic;
+        background-color: #f9f9f9;
+        color: #666;
+      }
+      ul.chat-window li.operator-error {
+        background-color: #ffebee;
+        color: #c0392b;
+        font-weight: bold;
+      }
+      form {
+        background: #ecf0f1;
+        padding: 10px 15px;
+        display: flex;
+        border-top: 1px solid #e0e0e0;
+      }
+      form input {
+        flex: 1;
+        border: 1px solid #ccc;
+        padding: 10px;
+        border-radius: 5px;
+        margin-right: 10px;
+        font-size: 1em;
+      }
+      form button {
+        background: #2980b9;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1em;
+        transition: background-color 0.2s ease;
+      }
+      form button:hover {
+        background-color: #2471a3;
+      }
     </style>
   </head>
   <body>
-    <h1>Operator</h1>
-    <ul id="chatTabs">
-    </ul>
-    <div id="chatWindows">
+    <h1>Operator Dashboard</h1>
+    <div class="container">
+      <div class="sidebar">
+        <h2>Active Sessions</h2>
+        <ul id="chatTabs">
+        </ul>
+      </div>
+      <div class="main-content">
+        <div id="chatWindows">
+        </div>
+        <form>
+          <input id="m" autocomplete="off" placeholder="Type a message..." /><button>Send</button>
+        </form>
+      </div>
     </div>
-    <form>
-      <input id="m" autocomplete="off" /><button>Send</button>
-    </form>
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script>
@@ -65,11 +182,18 @@ limitations under the License.
         // When the form is submitted, send an operator message to the server, referencing
         // the current tab's customer
         $('form').submit(function(){
+          if(!currentTab) {
+            alert('Please select a customer to chat with.');
+            return false;
+          }
           if(currentTab.disconnected) {
             alert('This customer has disconnected');
             return false;
           }
           var messageText = $('#m').val();
+          if (messageText.trim() === '') { // Prevent sending empty messages
+            return false;
+          }
           socket.emit('operator message', messageObject(currentTab.customerId, messageText));
           $('#m').val('');
           return false;
@@ -89,6 +213,8 @@ limitations under the License.
             $('.chat-window').hide();
             // Show this chat window
             target.window.show();
+            // Scroll to bottom of chat window
+            target.window.scrollTop(target.window[0].scrollHeight);
         };
 
         // Create a set of UI elements for a new customer tab.
@@ -99,7 +225,7 @@ limitations under the License.
           var newChatElements = {};
           newChatElements.customerId = customerId;
           // A tab displaying the customer id
-          newChatElements.tab = $('<li class="chat-tab">').text(customerId);
+          newChatElements.tab = $('<li class="chat-tab">').text('Customer ' + customerId.substring(0, 8)); // Shorten ID for display
           // The chat log for this customer
           newChatElements.window = $('<ul class="chat-window">').hide();
 
@@ -138,9 +264,9 @@ limitations under the License.
           connectedCustomers[customerId].disconnected = true;
           connectedCustomers[customerId]
             .window
-            .append($('<li class="customer-message">')
+            .append($('<li class="customer-message disconnected">')
             .text('--- Customer disconnected ---'));
-
+            connectedCustomers[customerId].tab.addClass('disconnected-tab');
         };
 
         // Notify the operator of a system error
@@ -157,6 +283,7 @@ limitations under the License.
           console.log(errorText);
           if(!currentTab) return;
           currentTab.window.append($('<li class="operator-error">').text(errorText));
+          currentTab.window.scrollTop(currentTab.window[0].scrollHeight);
         };
 
         // Display messages sent by any operator to the customers this operator knows about
@@ -168,6 +295,7 @@ limitations under the License.
           }
           customer.window
             .append($('<li class="operator-message">').text(msg.utterance));
+          customer.window.scrollTop(customer.window[0].scrollHeight);
         };
 
         // Display messages sent by customers
@@ -184,6 +312,7 @@ limitations under the License.
             .append($('<li class="customer-message">')
             .toggleClass('agent-response', msg.isAgentResponse)
             .text(prefix + msg.utterance));
+          connectedCustomers[msg.customerId].window.scrollTop(connectedCustomers[msg.customerId].window[0].scrollHeight);
         };
 
         // Attach all our event handlers
