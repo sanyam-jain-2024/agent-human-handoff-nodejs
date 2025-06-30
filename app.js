@@ -64,7 +64,7 @@ const messageRouter = new MessageRouter({
 });
 
 // Serve static html files for the customer and operator clients
-app.get('/customer', (req, res) => {
+app.get('/', (req, res) => {
   res.sendFile(`${__dirname}/static/customer.html`);
 });
 
