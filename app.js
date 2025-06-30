@@ -24,9 +24,9 @@ const CustomerStore = require('./customerStore.js');
 const MessageRouter = require('./messageRouter.js');
 
 // Grab the service account credentials path from an environment variable
-const keyPath = process.env.DF_SERVICE_ACCOUNT_PATH;
+const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
 if(!keyPath) {
-  console.log('You need to specify DF_SERVICE_ACCOUNT_PATH in your .env file. See README.md for details.');
+  console.log('You need to specify GOOGLE_APPLICATION_CREDENTIALS in your .env file. See README.md for details.');
   process.exit(1);
 }
 

@@ -55,7 +55,7 @@ connected customers are ignored.
 same service account email address in the table, and select the three dots under the **Actions** column > **Create key**, **JSON**, and then **CREATE** to download a key file.
 6. In terminal, to start the server:
 ```shell
-$ DF_PROJECT_ID=<project ID> DF_SERVICE_ACCOUNT_PATH=<path to key file> node app.js
+$ DF_PROJECT_ID=<project ID> GOOGLE_APPLICATION_CREDENTIALS=<path to key file> node app.js
 ```
 For example:
  **$ DF_PROJECT_ID=**`agent-human-handoff-sample` **DF_SERVICE_ACCOUNT_PATH=**`~/Download/keyfile.json`** node app.js**
